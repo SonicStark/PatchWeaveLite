@@ -248,8 +248,36 @@ mkdir -p ${DIRECTORY_OUTPUT}/fuzz-output
 export PYTHONPATH="/z3/build/python"
 ```
 
+The marks:
+ - `A`: /data/openjpeg-jasper/div-zero-1/openjpeg-1.5.1
+ - `B`: /data/openjpeg-jasper/div-zero-1/openjpeg-1.5.2
+ - `C`: /data/openjpeg-jasper/div-zero-1/jasper-1.900.2
+ - `D`: /data/openjpeg-jasper/div-zero-1/jasper-1.900.2-patch
+
 ### 2ND - Exploit
 
+```python
+FILE_EXPLOIT_OUTPUT_A = DIRECTORY_OUTPUT + "/exploit-log-a"
+FILE_EXPLOIT_OUTPUT_B = DIRECTORY_OUTPUT + "/exploit-log-b"
+FILE_EXPLOIT_OUTPUT_C = DIRECTORY_OUTPUT + "/exploit-log-c"
+FILE_EXPLOIT_OUTPUT_D = DIRECTORY_OUTPUT + "/exploit-log-d"
+```
+
+Build A, B, C, D with *Bear* and *wllvm*:
+
+```python
+if Values.ASAN_FLAG == "":
+    safe_exec(Builder.build_normal, "building binaries")
+else:
+    safe_exec(Builder.build_asan, "building binaries")
+```
+
+Run POC and collect info from stdout/stderr:
+
+```python
+safe_exec(test_exploits, "testing exploit case")
+safe_exec(collect_exploit_info, "collecting exploit information")
+```
 
 ### 3RD - Analyse
 
