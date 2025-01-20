@@ -1,4 +1,0 @@
-+ #include<stdint.h>
-+  if ((uint_fast8_t)image->comps[i].dy == 0 || (uint_fast8_t)image->comps[i].dy > 255) {
-+     return;
-+  }

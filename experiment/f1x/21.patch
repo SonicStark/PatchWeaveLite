@@ -1,6 +1,0 @@
---- a/util/listmp3.c
-+++ b/util/listmp3.c
-93c93
-<     flags <<= 24;
----
->     flags <<= numFrames;

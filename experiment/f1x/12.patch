@@ -1,6 +1,0 @@
---- a/cwebp.c
-+++ b/cwebp.c
-298c298
-<   jpeg_read_header(&dinfo, TRUE);
----
->   if (0) jpeg_read_header(&dinfo, 1);
