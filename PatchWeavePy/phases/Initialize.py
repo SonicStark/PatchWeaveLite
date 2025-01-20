@@ -19,8 +19,8 @@ def load_standard_list():
 
 def set_env_value():
     Emitter.normal("setting environment values")
-    os.environ["PYTHONPATH"] = "/home/rshariffdeen/workspace/z3/build/python"
-    execute_command("export PYTHONPATH=/home/rshariffdeen/workspace/z3/build/python")
+    os.environ["PYTHONPATH"] = "/z3/build/python"
+    execute_command("export PYTHONPATH=/z3/build/python")
 
 
 def load_values():

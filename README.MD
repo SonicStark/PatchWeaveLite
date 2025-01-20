@@ -62,7 +62,7 @@ python scripts/mk_make.py
 cd /z3/build
 make -j32 install
 
-export PYTHONPATH=/z3/build/python
+export PYTHONPATH="/z3/build/python"
 echo "Y" | pysmt-install --z3
 ```
 
@@ -211,4 +211,62 @@ git clone https://github.com/rshariffdeen/PatchWeave.git /patchweave
 
 
 
-## 
+## Workflow
+
+Launch with config `openjpeg-to-jasper.conf`:
+```
+path_a:/data/openjpeg-jasper/div-zero-1/openjpeg-1.5.1
+path_b:/data/openjpeg-jasper/div-zero-1/openjpeg-1.5.2
+path_c:/data/openjpeg-jasper/div-zero-1/jasper-1.900.2
+exploit_command_a:/applications/codec/j2k_to_image -i $POC -o out.bmp
+exploit_command_c:/src/appl/imginfo -f $POC
+path_poc:/data/exploits/jasper/CVE-2016-8691.j2k
+asan_flag:integer
+```
+
+### 1ST - Initialize
+
+```bash
+# DIRECTORY_LOG
+mkdir -p $(pwd)/logs
+# DIRECTORY_TMP
+mkdir -p $(pwd)/tmp
+# DIRECTORY_BACKUP
+mkdir -p $(pwd)/backup
+# DIRECTORY_OUTPUT_BASE
+mkdir -p $(pwd)/output
+# DIRECTORY_OUTPUT
+mkdir -p ${DIRECTORY_OUTPUT_BASE}/openjpeg-to-jasper
+
+cp -r \
+  /data/openjpeg-jasper/div-zero-1/jasper-1.900.2 \
+  /data/openjpeg-jasper/div-zero-1/jasper-1.900.2-patch
+
+mkdir -p ${DIRECTORY_OUTPUT}/fuzz-input
+mkdir -p ${DIRECTORY_OUTPUT}/fuzz-output
+
+export PYTHONPATH="/z3/build/python"
+```
+
+### 2ND - Exploit
+
+
+### 3RD - Analyse
+
+
+### 4TH - Trace
+
+
+### 5TH - Concolic
+
+
+### 6TH - Slice
+
+
+### 7TH - Weave
+
+
+### 8TH - Verify
+
+
+### 9TH - Emitter
