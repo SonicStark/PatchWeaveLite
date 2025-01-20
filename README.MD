@@ -50,6 +50,8 @@ apt-get update && apt-get install -y \
 
 </details>
 
+</br>
+
 <details><summary><b>/z3</b></summary>
 
 ```bash
@@ -110,6 +112,8 @@ make install
 ```
 
 </details>
+
+</br>
 
 <details><summary><b>PatchWeave Tools with CLANG+LLVM 7.0 (/llvm/llvm-7)</b></summary>
 
@@ -203,6 +207,8 @@ make -j32 install
 
 </details>
 
+According to the building order, default version of LLVM toolchain would be seized by **3.4**.</br>
+
 <b>PatchWeave</b>
 
 ```bash
@@ -263,7 +269,7 @@ FILE_EXPLOIT_OUTPUT_C = DIRECTORY_OUTPUT + "/exploit-log-c"
 FILE_EXPLOIT_OUTPUT_D = DIRECTORY_OUTPUT + "/exploit-log-d"
 ```
 
-Build A, B, C, D with *Bear* and *wllvm*:
+Build A, B, C, D with *Bear*:
 
 ```python
 if Values.ASAN_FLAG == "":
@@ -281,14 +287,163 @@ safe_exec(collect_exploit_info, "collecting exploit information")
 
 ### 3RD - Analyse
 
+```python
+FILE_DIFF_INFO_JSON = DIRECTORY_OUTPUT + "/diff_info.json"
+```
+
+#### Textural difference
+
+```python
+safe_exec(analyse_source_diff, "analysing source diff")
+```
+
+It will run *GNU diffutils* on source code tree firstly:
+```python
+# TODO: Include cases where a file is added or removed
+diff_command = "diff -ENZBbwqr " + project_path_a + " " + project_path_b + " -X " + output_ext + "> " + output_diff_file + ";"
+diff_command += "cat " + output_diff_file + "| grep -P '\.c and ' > " + output_c_diff + ";"
+diff_command += "cat " + output_diff_file + "| grep -P '\.h and ' > " + output_h_diff
+```
+
+Then walk and diff each C/C++ source file with `A` as baseline index:
+```python
+diff_command = "diff -ENBZbwr " + file_a + " " + file_b + " > " + output_file
+...
+diff_loc = file_a + ":" + str(start_a)
+diff_info[diff_loc] = dict()
+diff_info[diff_loc]['operation'] = operation
+
+if operation == 'insert':
+    diff_info[diff_loc]['new-lines'] = (start_b, end_b)
+    diff_info[diff_loc]['old-lines'] = (start_a, end_a)
+elif operation == "delete":
+    diff_info[diff_loc]['remove-lines'] = (start_a, end_a)
+elif operation == "modify":
+    diff_info[diff_loc]['old-lines'] = (start_a, end_a)
+    diff_info[diff_loc]['new-lines'] = (start_b, end_b)
+```
+
+#### AST structural difference
+
+> A textual difference between the two programs provides a list of diff locations in terms of source file paths and line numbers. 
+> 
+> We use information from the textual difference to identify potentially changed locations that are relevant for the patch and
+> use this information to generate the AST in a granular level instead of generating AST for the complete program.
+
+> Once we identified the necessary code chunks required for the patch, 
+> we captured the modification as a transformation of an abstract syntax tree.
+> *PatchWeave* constructs an AST for the function that contains the identified chunk in both *Pa* and *Pb*.
+> 
+> Using a tree difference algorithm [GumTree](https://github.com/GumTreeDiff/gumtree), 
+> we generate a transformation script for the ASTs constructed earlier. 
+
+```python
+safe_exec(analyse_ast_diff, "analysing ast diff")
+```
+
+Actually it will run [crochet-diff](https://github.com/SonicStark/PatchWeaveTranslatorTools/tree/master/crochet-diff) on each item in `diff_info`, with the following steps equivalently:
+```python
+ASTGenerator.generate_ast_script(source_a, source_b, script_file_path, False)
+
+ast_map_a = ASTGenerator.get_ast_json(source_path_a)
+ast_map_b = ASTGenerator.get_ast_json(source_path_b)
+
+ASTGenerator.generate_ast_script(source_a, source_b, script_file_path, True)
+
+mapping_ba = dict()
+with open(script_file_path, "r") as script_file:
+    script_lines = script_file.readlines()
+    for script_line in script_lines:
+        if "Match" in script_line:
+            node_id_a = int(((script_line.split(" to ")[0]).split("(")[1]).split(")")[0])
+            node_id_b = int(((script_line.split(" to ")[1]).split("(")[1]).split(")")[0])
+            mapping_ba[node_id_b] = node_id_a
+```
+
+Then the ast script is filtered and saved to each item, too:
+```python
+filtered_ast_script = list()
+
+if diff_info[diff_loc]['operation'] == 'insert':
+    start_line_b, end_line_b = diff_info[diff_loc]['new-lines']
+    line_range_b = (start_line_b, end_line_b)
+    line_range_a = (-1, -1)
+    filtered_ast_script = Filter.filter_ast_script(ast_script,
+                                                (source_path_a, line_range_a, ast_map_a),
+                                                (source_path_b, line_range_b, ast_map_b),
+                                                mapping_ba)
+elif diff_info[diff_loc]['operation'] == 'modify':
+    line_range_a = diff_info[diff_loc]['old-lines']
+    line_range_b = diff_info[diff_loc]['new-lines']
+    filtered_ast_script = Filter.filter_ast_script(ast_script,
+                                                (source_path_a, line_range_a, ast_map_a),
+                                                (source_path_b, line_range_b, ast_map_b),
+                                                mapping_ba)
+if filtered_ast_script is None:
+    del diff_info[diff_loc]
+    continue
+
+diff_info[diff_loc]['ast-script'] = filtered_ast_script
+```
 
 ### 4TH - Trace
 
+Total 3 steps:
+```python
+safe_exec(Builder.build_llvm, "building llvm files")
+safe_exec(trace_donor,        "tracing donor program")
+safe_exec(trace_target,       "tracing target program")
+```
 
-### 5TH - Concolic
+#### Step 1: emit llvm
+
+Build A, B, C, D with *wllvm*, *Clang 3.4*.
+
+#### Step 2: klee trace
+
+Trace A, B, C with [a modified KLEE](https://github.com/rshariffdeen/klee/tree/seedmode-external-calls):
+```python
+trace_command = "cd " + binary_path + ";"
+sym_args = "--posix-runtime --libc=uclibc --print-trace --print-stack -max-time=80 -max-memory=2048 "
+
+trace_command += "klee " + sym_args + " " + binary_name + ".bc " \
+            + exploit_command.replace("$POC", poc_path) + "  > " + log_path + " 2>&1"
+```
+
+The two new options of the modified KLEE are defined and used in `Executor.cpp`:
+```c++
+cl::opt<bool> PrintTrace("print-trace", cl::init(false),
+        cl::desc("Output source location for each instruction executed (default=off)"));
+cl::opt<bool> PrintStack("print-stack", cl::init(false),
+        cl::desc("Output stack information on error exit (default=off)"));
+
+void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
+    Instruction *i = ki->inst;
+    std::string sourceLoc = ki->getSourceLocation();
+    if (sourceLoc.find("klee") == std::string::npos){
+        if (PrintTrace)
+            errs() << "\n[trace] " << sourceLoc << " - " << ki->inst->getOpcode() << "\n";
+        if (PrintLLVMInstr)
+            errs() << "\n[LLVM] " << *(ki->inst) << "\n";
+    }
+    switch (i->getOpcode()) { ... }
+}
+
+void Executor::terminateStateOnError(ExecutionState &state,
+                                     const llvm::Twine &messaget,
+                                     enum TerminateReason termReason,
+                                     const char *suffix,
+                                     const llvm::Twine &info) {...
+        if (PrintStack){
+            errs() << "Stack: \n"; state.dumpStack(errs(), kmodule->targetData.get());
+        } ...}
+```
+
+### 5TH - Slice
 
 
-### 6TH - Slice
+
+### 6TH - Concolic
 
 
 ### 7TH - Weave
