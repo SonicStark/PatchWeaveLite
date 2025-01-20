@@ -15,7 +15,8 @@ DIRECTORY_VECTORS_A = DIRECTORY_OUTPUT + "/vectors-a"
 DIRECTORY_VECTORS_B = DIRECTORY_OUTPUT + "/vectors-b"
 DIRECTORY_VECTORS_C = DIRECTORY_OUTPUT + "/vectors-c"
 DIRECTORY_TOOLS = DIRECTORY_MAIN + "/third-party"
-DIRECTORY_DATA = DIRECTORY_MAIN + "/data"
+
+DIRECTORY_DATA = os.path.dirname(os.path.abspath(__file__))
 
 # ------------------- Files --------------------
 
