@@ -7,14 +7,11 @@ import os
 
 DIRECTORY_MAIN = os.getcwd()
 DIRECTORY_LOG = DIRECTORY_MAIN + "/logs"
-DIRECTORY_OUTPUT_BASE = DIRECTORY_MAIN + "/output"
-DIRECTORY_OUTPUT = ""
 DIRECTORY_TMP = DIRECTORY_MAIN + "/tmp"
 DIRECTORY_BACKUP = DIRECTORY_MAIN + "/backup"
-DIRECTORY_VECTORS_A = DIRECTORY_OUTPUT + "/vectors-a"
-DIRECTORY_VECTORS_B = DIRECTORY_OUTPUT + "/vectors-b"
-DIRECTORY_VECTORS_C = DIRECTORY_OUTPUT + "/vectors-c"
-DIRECTORY_TOOLS = DIRECTORY_MAIN + "/third-party"
+DIRECTORY_OUTPUT_BASE = DIRECTORY_MAIN + "/output"
+
+DIRECTORY_OUTPUT = ""
 
 DIRECTORY_DATA = os.path.dirname(os.path.abspath(__file__))
 
@@ -93,17 +90,6 @@ ARG_SKIP_RESTORE = "--skip-restore"
 ARG_ONLY_VERIFY = "--only-verify"
 ARG_BACKPORTING = "--backport"
 
-
-# ----------------- TOOLS --------------------------------
-TOOL_VECGEN = "third-party/deckard/cvecgen_fail "
-TOOL_VECGEN_ORIG = "third-party/deckard/cvecgen "
-
-PATCH_COMMAND = "patchweave-patch"
-PATCH_SIZE = "1000"
-DIFF_COMMAND = "crochet-diff "
-DIFF_SIZE = "1000"
-SYNTAX_CHECK_COMMAND = "clang-check "
-STYLE_FORMAT_COMMAND = "clang-format -style=LLVM "
 
 crash_word_list = ["abort", "core dumped", "crashed", "exception"]
 error_word_list = ["runtime error", "buffer-overflow", "unsigned integer overflow"]
