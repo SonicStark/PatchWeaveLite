@@ -523,8 +523,23 @@ Default value of `Values.BACKPORT` is `False`, so this step makes <b><i>Slice</b
 
 ### 7TH - Weave
 
+*phases/Weave.py*
+
+```python
+safe_exec(transplant_code,               "transplanting code")
+safe_exec(transplant_missing_functions,  "transplanting functions")
+safe_exec(transplant_missing_data_types, "transplanting data structures")
+safe_exec(transplant_missing_macros,     "transplanting macros")
+safe_exec(transplant_missing_header,     "transplanting header files")
+safe_exec(Fixer.check,                   "correcting syntax errors", modified_source_list)
+```
 
 ### 8TH - Verify
 
+*phases/Verify.py*
 
-### 9TH - Emitter
+```python
+safe_exec(verify_compilation, "verifying compilation")
+safe_exec(verify_exploit,     "verifying exploit")
+safe_exec(verify_behavior,    "verifying differential behavior")
+```
