@@ -490,6 +490,36 @@ void Executor::terminateStateOnError(ExecutionState &state,
 
 ### 6TH - Slice
 
+Total 3 steps:
+
+```python
+# step 1
+# safe_exec(remove_code, "slicing code not in trace")
+
+diff_info = Slicer.slice_code_from_trace(Values.diff_info, trace_list, path_a, path_b)
+diff_info = Slicer.slice_ast_script(diff_info, Values.PATH_A, Values.PATH_B, trace_list)
+Values.diff_info = Slicer.slice_skipped_diff_locs(diff_info)
+```
+
+```python
+# step 2
+# if not Values.BACKPORT:
+#     safe_exec(remove_func_calls, "slicing function calls")
+
+diff_info = Slicer.slice_function_calls(Values.diff_info, Concolic.sym_path_b.keys(), path_a, path_b)
+diff_info = Slicer.slice_ast_script(diff_info, Values.PATH_A, Values.PATH_B, Trace.list_trace_b)
+Values.diff_info = Slicer.slice_skipped_diff_locs(diff_info)
+```
+
+```python
+# step 3
+# safe_exec(remove_redundancy, "slicing redundant diff")
+
+suspicious_lines = Exploit.donor_suspect_line_list
+Values.diff_info = Slicer.slice_redundant_patches(Values.diff_info, suspicious_lines)
+```
+
+Default value of `Values.BACKPORT` is `False`, so this step makes <b><i>Slice</b></i> depends on <b><i>Concolic</b></i> different from what stated in paper...
 
 ### 7TH - Weave
 
