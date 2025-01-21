@@ -397,7 +397,7 @@ safe_exec(trace_target,       "tracing target program")
 
 #### Step 1: emit llvm
 
-Build A, B, C, D with *wllvm*, *Clang 3.4*.
+Build A, B, C, D with *wllvm*, *Clang 3.4*. Then use `extract-bc` from *wllvm* to get IR bitcode for KLEE.
 
 #### Step 2: klee trace
 
@@ -439,11 +439,56 @@ void Executor::terminateStateOnError(ExecutionState &state,
         } ...}
 ```
 
-### 5TH - Slice
+### 5TH - Concolic
 
+Run so-called *sym_trace* on A, B and C:
+```python
+safe_exec(sym_trace_donor,  "generating symbolic trace information from donor program")
+safe_exec(sym_trace_target, "generating symbolic trace information from target program")
+```
 
+For example it will launch [the modified KLEE](https://github.com/rshariffdeen/klee/tree/seedmode-external-calls) for B:
+```python
+trace_command = "cd " + binary_path + ";"
 
-### 6TH - Concolic
+sym_args = "-print-path -write-smt2s --libc=uclibc --posix-runtime --external-calls=all --only-replay-seeds --seed-out=$KTEST -max-time=80 -max-memory=2048"
+
+trace_command += "klee " + sym_args.replace("$KTEST", poc_path) + " " + binary_name + ".bc " \
+                    + binary_arguments.replace("$POC", "A") + " --sym-files 1 " + str(bit_size) \
+                    + "  > " + log_path + " 2>&1"
+
+sym_file_path = binary_path + "/klee-last/test000001.smt2 "
+```
+
+Note that `-print-path` is implemented as
+```c++
+cl::opt<bool> PrintPath("print-path", cl::init(false),
+        cl::desc("Output path condition along with source location as and when it's updated (default=off)"));
+
+void Executor::addConstraint(ExecutionState &state, ref<Expr> condition) { ...
+    if (!res) {
+        state.addConstraint(condition);
+        if(PrintPath) {
+            std::string constraints;
+            getConstraintLog(state, constraints, Interpreter::SMTLIB2);
+            errs() << "\n[path:condition] " << state.pc->getSourceLocation() << " : " << constraints<< "\n";
+        }
+    } ... 
+}
+
+void Executor::terminateStateOnError(ExecutionState &state,
+                                     const llvm::Twine &messaget,
+                                     enum TerminateReason termReason,
+                                     const char *suffix,
+                                     const llvm::Twine &info) { ...
+        if (usingSeeds && PrintPath){
+            //interpreterHandler->processTestCase(state, msg.str().c_str(), suffix);
+            exit(0);
+        } ...
+}
+```
+
+### 6TH - Slice
 
 
 ### 7TH - Weave
